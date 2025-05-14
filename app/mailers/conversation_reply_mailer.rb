@@ -122,13 +122,25 @@ class ConversationReplyMailer < ApplicationMailer
       subject
     end
   end
-
+  
   def reply_email
-    if should_use_conversation_email_address?
-      sender_name("reply+#{@conversation.uuid}@#{channel_email_domain}")
+    Rails.logger.info { "ConversationReplyMailer#reply_email started for conversation #{@conversation&.uuid}" }
+
+    use_conversation_email = should_use_conversation_email_address?
+    Rails.logger.info { "should_use_conversation_email_address? => #{use_conversation_email}" }
+
+    if use_conversation_email
+      email_address = "reply+#{@conversation.uuid}@#{channel_email_domain}"
+      Rails.logger.info { "Using conversation email address: #{email_address}" }
+      result = sender_name(email_address)
     else
-      @inbox.email_address || @agent&.email
+      email_address = @inbox.email_address || @agent&.email
+      Rails.logger.info { "Using inbox/agent email address: #{email_address}" }
+      result = email_address
     end
+
+    Rails.logger.info { "ConversationReplyMailer#reply_email returning #{result}" }
+    result
   end
 
   def from_email_with_name
