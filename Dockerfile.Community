@@ -3,6 +3,13 @@ FROM chatwoot/chatwoot:latest-ce
 
 RUN apk add --no-cache multirun postgresql-client
 
+# ──-------------------
+# Overlay the one file we changed
+WORKDIR /app
+COPY ./app/mailers/conversation_reply_mailer.rb ./app/mailers/conversation_reply_mailer.rb
+# ─────────────────────
+
+
 COPY --chmod=755 start.sh ./
 
 ENTRYPOINT ["/bin/sh"]
