@@ -7,24 +7,25 @@ RUN apk add --no-cache multirun postgresql-client
 # Overlay the one file we changed
 WORKDIR /app
 
-# Log and show original file (if it exists)
-RUN echo "Before COPY:" && \
-    ls -l ./app && \
-    ls -l ./app/mailers/ && \
-    echo "Original content:" && \
-    cat ./app/mailers/conversation_reply_mailer.rb || echo "File does not exist"
+# Save the original version (if any) so we can diff later
+RUN if [ -f ./app/mailers/conversation_reply_mailer.rb ]; then \
+        echo "Original file found; saving a copy for diff" && \
+        cp ./app/mailers/conversation_reply_mailer.rb /tmp/original_conversation_reply_mailer.rb; \
+    else \
+        echo "Original file does not exist; creating empty placeholder for diff" && \
+        touch /tmp/original_conversation_reply_mailer.rb; \
+    fi
 
-# Copy the file
+# Copy the updated file into the image
 COPY ./app/mailers/conversation_reply_mailer.rb ./app/mailers/conversation_reply_mailer.rb
 
-# Log after copy and show new content
-RUN echo "After COPY:" && \
-    ls -l ./app/mailers/ && \
-    echo "Updated content:" && \
-    cat ./app/mailers/conversation_reply_mailer.rb
+# Show a unified diff between the original and updated versions.
+# `diff` returns exit code 1 when files differ, so we append `|| true` to
+# avoid aborting the build.
+RUN echo "\n─────────────── Diff of conversation_reply_mailer.rb ───────────────" && \
+    diff -u /tmp/original_conversation_reply_mailer.rb ./app/mailers/conversation_reply_mailer.rb || true && \
+    echo "──────────────────────────────────────────────────────────────────"
 # ─────────────────────
-
-
 
 COPY --chmod=755 start.sh ./
 
