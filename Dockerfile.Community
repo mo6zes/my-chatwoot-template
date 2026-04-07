@@ -27,9 +27,9 @@ RUN echo "\n─────────────── Diff of conversation_r
     echo "──────────────────────────────────────────────────────────────────"
 # ─────────────────────
 
-# Patch storage.yml to fix Cloudflare R2 checksum incompatibility
-# (Rails 7.1 + aws-sdk >= 3.240 sends multiple checksum headers which R2 rejects)
-COPY config/storage.yml /app/config/storage.yml
+# Fix Cloudflare R2 checksum incompatibility via AWS SDK global config
+# (storage.yml options not supported by this aws-sdk version)
+COPY config/initializers/aws_checksum.rb /app/config/initializers/aws_checksum.rb
 
 COPY --chmod=755 start.sh ./
 
