@@ -1,7 +1,35 @@
 # https://hub.docker.com/r/chatwoot/chatwoot/tags
-FROM chatwoot/chatwoot:latest-ce
+FROM chatwoot/chatwoot:v4.8.0-ce
 
 RUN apk add --no-cache multirun postgresql-client
+
+# ──-------------------
+# Overlay the one file we changed
+WORKDIR /app
+
+# Save the original version (if any) so we can diff later
+RUN if [ -f ./app/mailers/conversation_reply_mailer.rb ]; then \
+        echo "Original file found; saving a copy for diff" && \
+        cp ./app/mailers/conversation_reply_mailer.rb /tmp/original_conversation_reply_mailer.rb; \
+    else \
+        echo "Original file does not exist; creating empty placeholder for diff" && \
+        touch /tmp/original_conversation_reply_mailer.rb; \
+    fi
+
+# Copy the updated file into the image
+COPY ./app/mailers/conversation_reply_mailer.rb ./app/mailers/conversation_reply_mailer.rb
+
+# Show a unified diff between the original and updated versions.
+# `diff` returns exit code 1 when files differ, so we append `|| true` to
+# avoid aborting the build.
+RUN echo "\n─────────────── Diff of conversation_reply_mailer.rb ───────────────" && \
+    diff -u /tmp/original_conversation_reply_mailer.rb ./app/mailers/conversation_reply_mailer.rb || true && \
+    echo "──────────────────────────────────────────────────────────────────"
+# ─────────────────────
+
+# Patch storage.yml to fix Cloudflare R2 checksum incompatibility
+# (Rails 7.1 + aws-sdk >= 3.240 sends multiple checksum headers which R2 rejects)
+COPY config/storage.yml /app/config/storage.yml
 
 COPY --chmod=755 start.sh ./
 
